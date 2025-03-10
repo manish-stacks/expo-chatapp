@@ -2,10 +2,10 @@ import axios from 'axios';
 import { io } from 'socket.io-client';
 
 // API URL - Update this to your server URL
-const API_URL = 'http://localhost:8000/api';
+const API_URL = 'http://192.168.1.15:5000/api';
 
 // Socket.io connection
-const socket = io('http://localhost:8000');
+const socket = io('http://192.168.1.15:5000');
 
 // Get all users except the current user
 export const getAllUsers = async (currentUserId: string) => {

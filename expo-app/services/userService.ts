@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // API URL
-const API_URL = 'http://localhost:8000/api';
+const API_URL = 'http://192.168.1.15:5000/api';
 
 // Update user profile
 export const updateUserProfile = async (userId: string, data: { displayName?: string, photoURL?: string }) => {
