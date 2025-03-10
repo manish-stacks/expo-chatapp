@@ -4,7 +4,7 @@ import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 
 // API URL
-const API_URL = 'http://localhost:8000/api';
+const API_URL = 'http://192.168.1.15:5000/api';
 
 interface User {
   id: string;
@@ -27,20 +27,24 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // Helper function to store token securely
+
 const storeToken = async (token: string) => {
   if (Platform.OS === 'web') {
     localStorage.setItem('token', token);
   } else {
-    await SecureStore.setItemAsync('token', token);
+    await SecureStore.setItemAsync('token', String(token)); 
   }
 };
 
+
 // Helper function to get token
+
 const getToken = async () => {
   if (Platform.OS === 'web') {
     return localStorage.getItem('token');
   } else {
-    return await SecureStore.getItemAsync('token');
+    const storedToken = await SecureStore.getItemAsync('token');
+    return storedToken ? JSON.parse(storedToken) : null;
   }
 };
 
@@ -169,8 +173,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         password,
         displayName,
         photoURL
+      },{
+        headers: {
+          'Content-Type': 'application/json'
+        }
       });
       
+      console.log(res.data)
       const { token, user } = res.data;
       
       await storeToken(token);

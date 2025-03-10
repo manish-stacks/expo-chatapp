@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import { router } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
-import { getRecentChats } from '@/services/chatService';
+import { getRecentChats, subscribeToChats } from '@/services/chatService';
 import { formatTimestamp } from '@/utils/dateUtils';
 import { MessageSquarePlus } from 'lucide-react-native';
 

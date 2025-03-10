@@ -122,7 +122,7 @@ export const markChatAsRead = async (chatId: string, userId: string) => {
     throw error;
   }
 };
-
+ 
 // Subscribe to chats (for real-time updates)
 export const subscribeToChats = (userId: string, callback: (chats: any[]) => void) => {
   // Listen for chat updates
