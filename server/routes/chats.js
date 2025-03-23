@@ -10,6 +10,7 @@ const auth = require('../middleware/auth');
 // @desc    Get all chats for a user
 // @access  Private
 router.get('/', auth, async (req, res) => {
+  console.log(req.user.id);
   try {
     // Find all chats where the user is a participant
     const chats = await Chat.find({
@@ -56,6 +57,8 @@ router.get('/', auth, async (req, res) => {
 // @desc    Create a new chat or get existing chat
 // @access  Private
 router.post('/', auth, async (req, res) => {
+  console.log('Received request to create chat:', req.user.id, req.body);
+
   const { recipientId } = req.body;
   
   if (!recipientId) {
@@ -73,8 +76,8 @@ router.post('/', auth, async (req, res) => {
     const existingChat = await Chat.findOne({
       participants: {
         $all: [
-          mongoose.Types.ObjectId(req.user.id),
-          mongoose.Types.ObjectId(recipientId)
+          new mongoose.Types.ObjectId(req.user.id),
+          new mongoose.Types.ObjectId(recipientId)
         ]
       }
     });
@@ -96,7 +99,7 @@ router.post('/', auth, async (req, res) => {
     
     res.json({ id: newChat._id });
   } catch (err) {
-    console.error(err.message);
+    console.error('Error creating chat:', err.message);
     res.status(500).send('Server error');
   }
 });

@@ -1,12 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, FlatList, Image, KeyboardAvoidingView, Platform, ActivityIndicator, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, FlatList, Image, KeyboardAvoidingView, Platform, ActivityIndicator, Dimensions, Alert } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
-import { getMessages, sendMessage, markChatAsRead } from '@/services/chatService';
+import { getMessages, sendMessage, markChatAsRead, subscribeToMessages, deleteMessage } from '@/services/chatService';
 import { formatTimestamp } from '@/utils/dateUtils';
 import { ArrowLeft, Send, Image as ImageIcon, Video } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
-
+import { ResizeMode, Video as ExpoVideo } from 'expo-av';
 export default function ChatScreen() {
   const { id, recipientId, recipientName, recipientPhoto } = useLocalSearchParams();
   const { user } = useAuth();
@@ -16,6 +16,8 @@ export default function ChatScreen() {
   const [sending, setSending] = useState(false);
   const [uploadingMedia, setUploadingMedia] = useState(false);
   const flatListRef = useRef(null);
+  const [status, setStatus] = useState({});
+  const video = useRef(null);
 
   useEffect(() => {
     if (!user || !id) return;
@@ -24,9 +26,9 @@ export default function ChatScreen() {
       try {
         const chatMessages = await getMessages(id.toString());
         setMessages(chatMessages);
-        
+
         // Mark chat as read
-        await markChatAsRead(id.toString(), user.uid);
+        await markChatAsRead(id.toString(), user.id);
       } catch (error) {
         console.error('Error loading messages:', error);
       } finally {
@@ -48,10 +50,10 @@ export default function ChatScreen() {
 
   const handleSend = async () => {
     if (!text.trim()) return;
-    
+
     try {
       setSending(true);
-      await sendMessage(id.toString(), user.uid, recipientId.toString(), text, 'text');
+      await sendMessage(id.toString(), user.id, recipientId.toString(), text, 'text');
       setText('');
     } catch (error) {
       console.error('Error sending message:', error);
@@ -71,7 +73,7 @@ export default function ChatScreen() {
       if (!result.canceled) {
         setUploadingMedia(true);
         const imageUri = result.assets[0].uri;
-        await sendMessage(id.toString(), user.uid, recipientId.toString(), imageUri, 'image');
+        await sendMessage(id.toString(), user.id, recipientId.toString(), imageUri, 'image');
         setUploadingMedia(false);
       }
     } catch (error) {
@@ -91,7 +93,7 @@ export default function ChatScreen() {
       if (!result.canceled) {
         setUploadingMedia(true);
         const videoUri = result.assets[0].uri;
-        await sendMessage(id.toString(), user.uid, recipientId.toString(), videoUri, 'video');
+        await sendMessage(id.toString(), user.id, recipientId.toString(), videoUri, 'video');
         setUploadingMedia(false);
       }
     } catch (error) {
@@ -100,73 +102,114 @@ export default function ChatScreen() {
     }
   };
 
+  const handleDeleteMessage = async (messageId: string) => {
+  
+    Alert.alert('Delete Message', 'Are you sure you want to delete this message?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        onPress: async () => {
+          try {
+            await deleteMessage(messageId);
+            setMessages((prev) => prev.filter((msg) => msg._id !== messageId));
+          } catch (error) {
+            console.error('Error deleting message:', error);
+          }
+        },
+        style: 'destructive',
+      },
+    ]);
+  };
   const renderMessage = ({ item }) => {
-    const isMyMessage = item.senderId === user?.uid;
-    
+    const isMyMessage = item.senderId === user?.id;
+
     return (
-      <View style={[
-        styles.messageContainer,
-        isMyMessage ? styles.myMessageContainer : styles.theirMessageContainer
-      ]}>
-        {!isMyMessage && (
-          <Image 
-            source={{ uri: recipientPhoto || 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=100&auto=format&fit=crop' }} 
-            style={styles.messageAvatar} 
-          />
-        )}
-        <View style={[
-          styles.messageBubble,
-          isMyMessage ? styles.myMessageBubble : styles.theirMessageBubble,
-          item.type !== 'text' && styles.mediaBubble
-        ]}>
-          {item.type === 'image' ? (
-            <Image 
-              source={{ uri: item.content }} 
-              style={styles.messageImage}
-              resizeMode="cover"
-            />
-          ) : item.type === 'video' ? (
-            <View style={styles.videoContainer}>
-              <Image 
-                source={{ uri: item.thumbnail || 'https://images.unsplash.com/photo-1611162616475-46b635cb6868?q=80&w=200&auto=format&fit=crop' }} 
-                style={styles.messageVideo}
-                resizeMode="cover"
-              />
-              <View style={styles.videoPlayButton}>
-                <Video size={24} color="#fff" />
-              </View>
-            </View>
-          ) : (
-            <Text style={[
-              styles.messageText,
-              isMyMessage ? styles.myMessageText : styles.theirMessageText
-            ]}>
-              {item.content}
-            </Text>
-          )}
-          <Text style={[
-            styles.messageTime,
-            isMyMessage ? styles.myMessageTime : styles.theirMessageTime
+      <TouchableOpacity
+        onLongPress={() => isMyMessage && handleDeleteMessage(item._id)}
+        style={[styles.messageWrapper, isMyMessage ? styles.myMessageWrapper : styles.theirMessageWrapper]}
+      >
+        <View style={[styles.messageWrapper, isMyMessage ? styles.myMessageWrapper : styles.theirMessageWrapper]}>
+          {/* {!isMyMessage && (
+        <Image 
+          source={{ uri: recipientPhoto || 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=100&auto=format&fit=crop' }} 
+          style={styles.messageAvatar} 
+        />
+      )} */}
+          <View style={[
+            styles.messageContainer,
+            isMyMessage ? styles.myMessageContainer : styles.theirMessageContainer
           ]}>
-            {formatTimestamp(item.timestamp, 'time')}
-          </Text>
+            <View style={[
+              styles.messageBubble,
+              isMyMessage ? styles.myMessageBubble : styles.theirMessageBubble,
+              item.type !== 'text' && styles.mediaBubble
+            ]}>
+              {item.type === 'image' ? (
+                <Image
+                  source={{ uri: item.content }}
+                  style={styles.messageImage}
+                  resizeMode="cover"
+                />
+              ) : item.type === 'video' ? (
+                <View style={styles.videoContainer}>
+                  <Image
+                    source={{ uri: item.thumbnail || 'https://images.unsplash.com/photo-1611162616475-46b635cb6868?q=80&w=200&auto=format&fit=crop' }}
+                    style={styles.messageVideo}
+                    resizeMode="cover"
+                  />
+                  <View style={styles.videoPlayButton}>
+                    <ExpoVideo
+                      // source={{ uri: item.content }}
+                      // style={styles.messageVideo}
+                      // useNativeControls
+                      // resizeMode="contain"
+
+                      ref={video}
+                      style={styles.messageVideo}
+                      source={{
+                        uri: item.content,
+                      }}
+                      useNativeControls
+                      resizeMode={ResizeMode.CONTAIN}
+                      isLooping
+                      onPlaybackStatusUpdate={status => setStatus(() => status)}
+                    />
+                  </View>
+                </View>
+              ) : (
+                <Text style={[
+                  styles.messageText,
+                  isMyMessage ? styles.myMessageText : styles.theirMessageText
+                ]}>
+                  {item.content}
+                </Text>
+              )}
+              <Text style={[
+                styles.messageTime,
+                isMyMessage ? styles.myMessageTime : styles.theirMessageTime
+              ]}>
+                {formatTimestamp(item.timestamp, 'time')}
+              </Text>
+            </View>
+          </View>
         </View>
-      </View>
+      </TouchableOpacity>
     );
   };
+
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.backButton}
           onPress={() => router.back()}
         >
           <ArrowLeft size={24} color="#333" />
         </TouchableOpacity>
-        <Image 
-          source={{ uri: recipientPhoto || 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=100&auto=format&fit=crop' }} 
-          style={styles.headerAvatar} 
+        <Image
+          source={{ uri: recipientPhoto || 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=100&auto=format&fit=crop' }}
+          style={styles.headerAvatar}
         />
         <View style={styles.headerInfo}>
           <Text style={styles.headerName}>{recipientName}</Text>
@@ -182,7 +225,7 @@ export default function ChatScreen() {
         <FlatList
           ref={flatListRef}
           data={messages}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item) => item._id}
           renderItem={renderMessage}
           contentContainerStyle={styles.messagesList}
           inverted
@@ -203,14 +246,14 @@ export default function ChatScreen() {
       >
         <View style={styles.inputContainer}>
           <View style={styles.mediaButtons}>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.mediaButton}
               onPress={pickImage}
               disabled={uploadingMedia}
             >
               <ImageIcon size={20} color="#5271ff" />
             </TouchableOpacity>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.mediaButton}
               onPress={pickVideo}
               disabled={uploadingMedia}
@@ -225,7 +268,7 @@ export default function ChatScreen() {
             onChangeText={setText}
             multiline
           />
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[styles.sendButton, !text.trim() && styles.sendButtonDisabled]}
             onPress={handleSend}
             disabled={!text.trim() || sending}
@@ -246,6 +289,7 @@ const { width } = Dimensions.get('window');
 
 const styles = StyleSheet.create({
   container: {
+    marginTop: 35,
     flex: 1,
     backgroundColor: '#f5f5f5',
   },

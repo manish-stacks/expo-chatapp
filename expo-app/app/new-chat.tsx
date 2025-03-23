@@ -17,7 +17,7 @@ export default function NewChatScreen() {
     const loadUsers = async () => {
       if (user) {
         try {
-          const allUsers = await getAllUsers(user.uid);
+          const allUsers = await getAllUsers(user.id);
           setUsers(allUsers);
           setFilteredUsers(allUsers);
         } catch (error) {
@@ -44,9 +44,14 @@ export default function NewChatScreen() {
   }, [searchQuery, users]);
 
   const startChat = async (userId, userName, userPhoto) => {
+    console.log('userId:', userId);
+    if (!userId) {
+      console.error('Recipient ID is required');
+      return;
+    }
     try {
       setStartingChat(prev => ({ ...prev, [userId]: true }));
-      const chatId = await createChat(user.uid, userId);
+      const chatId = await createChat(user.id, userId);
       router.push({
         pathname: '/chat/[id]',
         params: { 

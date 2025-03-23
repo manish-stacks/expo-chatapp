@@ -2,10 +2,10 @@ import axios from 'axios';
 import { io } from 'socket.io-client';
 
 // API URL - Update this to your server URL
-const API_URL = 'http://192.168.1.15:5000/api';
+const API_URL = 'http://192.168.1.39:5000/api';
 
 // Socket.io connection
-const socket = io('http://192.168.1.15:5000');
+const socket = io('http://192.168.1.39:5000');
 
 // Get all users except the current user
 export const getAllUsers = async (currentUserId: string) => {
@@ -20,14 +20,18 @@ export const getAllUsers = async (currentUserId: string) => {
 
 // Create a new chat or get existing chat between two users
 export const createChat = async (userId: string, recipientId: string) => {
+  if (!recipientId) {
+    throw new Error('Recipient ID is required');
+  }
   try {
+    console.log('Sending request to create chat:', { recipientId });
     const res = await axios.post(`${API_URL}/chats`, {
       recipientId
     });
-    
+    console.log('Received response from create chat:', res.data);
     return res.data.id;
   } catch (error) {
-    console.error('Error creating chat:', error);
+    console.error('Error creating chat:', error.response ? error.response.data : error.message);
     throw error;
   }
 };
@@ -56,15 +60,15 @@ export const getMessages = async (chatId: string) => {
 
 // Send a message
 export const sendMessage = async (
-  chatId: string, 
-  senderId: string, 
-  recipientId: string, 
-  content: string, 
+  chatId: string,
+  senderId: string,
+  recipientId: string,
+  content: string,
   type: 'text' | 'image' | 'video'
 ) => {
   try {
     let response;
-    
+
     if (type === 'text') {
       // Send text message
       response = await axios.post(`${API_URL}/messages`, {
@@ -78,31 +82,31 @@ export const sendMessage = async (
       formData.append('chatId', chatId);
       formData.append('recipientId', recipientId);
       formData.append('type', type);
-      
+
       // Add file to form data
       const filename = content.split('/').pop();
       const match = /\.(\w+)$/.exec(filename || '');
-      const fileType = type === 'image' 
+      const fileType = type === 'image'
         ? match ? `image/${match[1]}` : 'image/jpeg'
         : match ? `video/${match[1]}` : 'video/mp4';
-      
+
       formData.append('file', {
         uri: content,
         name: filename,
         type: fileType
       } as any);
-      
+
       response = await axios.post(`${API_URL}/messages/media`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }
       });
     }
-    
+
     // Emit socket event
     socket.emit('message', response.data);
     socket.emit('chat_updated', chatId);
-    
+
     return response.data.id;
   } catch (error) {
     console.error('Error sending message:', error);
@@ -114,7 +118,7 @@ export const sendMessage = async (
 export const markChatAsRead = async (chatId: string, userId: string) => {
   try {
     await axios.put(`${API_URL}/chats/${chatId}/read`);
-    
+
     // Emit socket event
     socket.emit('chat_updated', chatId);
   } catch (error) {
@@ -122,7 +126,7 @@ export const markChatAsRead = async (chatId: string, userId: string) => {
     throw error;
   }
 };
- 
+
 // Subscribe to chats (for real-time updates)
 export const subscribeToChats = (userId: string, callback: (chats: any[]) => void) => {
   // Listen for chat updates
@@ -134,7 +138,7 @@ export const subscribeToChats = (userId: string, callback: (chats: any[]) => voi
       console.error('Error getting updated chats:', error);
     }
   });
-  
+
   return () => {
     socket.off('chat_updated');
   };
@@ -144,7 +148,7 @@ export const subscribeToChats = (userId: string, callback: (chats: any[]) => voi
 export const subscribeToMessages = (chatId: string, callback: (messages: any[]) => void) => {
   // Join chat room
   socket.emit('join', chatId);
-  
+
   // Listen for new messages
   socket.on('message', (message) => {
     if (message.chatId === chatId) {
@@ -154,10 +158,21 @@ export const subscribeToMessages = (chatId: string, callback: (messages: any[]) 
         .catch(error => console.error('Error getting updated messages:', error));
     }
   });
-  
+
   return () => {
     // Leave chat room
     socket.emit('leave', chatId);
     socket.off('message');
   };
+};
+
+
+export const deleteMessage = async (messageId: string) => {
+  console.log(messageId)
+  try {
+    await axios.delete(`${API_URL}/messages/${messageId}`);
+  } catch (error) {
+    console.error('Error deleting message:', error);
+    throw error;
+  }
 };

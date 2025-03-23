@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, Image, TextInput, ActivityIndicator } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, Image, TextInput, ActivityIndicator, Alert } from 'react-native';
 import { router } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
 import { getAllUsers, createChat } from '@/services/chatService';
@@ -16,8 +16,10 @@ export default function ContactsScreen() {
   useEffect(() => {
     const loadContacts = async () => {
       if (user) {
+        
         try {
-          const users = await getAllUsers(user.uid);
+          const users = await getAllUsers(user.id);
+          console.log(users)
           setContacts(users);
           setFilteredContacts(users);
         } catch (error) {
@@ -46,18 +48,19 @@ export default function ContactsScreen() {
   const startChat = async (contactId, contactName, contactPhoto) => {
     try {
       setAddingContact(prev => ({ ...prev, [contactId]: true }));
-      const chatId = await createChat(user.uid, contactId);
+      const chatId = await createChat(user.id, contactId);
       router.push({
         pathname: '/chat/[id]',
         params: { 
           id: chatId, 
           recipientId: contactId, 
           recipientName: contactName, 
-          recipientPhoto: contactPhoto 
+          recipientPhoto: contactPhoto, 
         }
       });
     } catch (error) {
       console.error('Error starting chat:', error);
+      Alert.alert('Error', 'Failed to start chat. Please try again.');
     } finally {
       setAddingContact(prev => ({ ...prev, [contactId]: false }));
     }
@@ -95,11 +98,11 @@ export default function ContactsScreen() {
       ) : (
         <FlatList
           data={filteredContacts}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item) => item._id}
           renderItem={({ item }) => (
             <TouchableOpacity 
               style={styles.contactItem}
-              onPress={() => startChat(item.id, item.displayName, item.photoURL)}
+              onPress={() => startChat(item._id, item.displayName, item.photoURL)}
             >
               <Image 
                 source={{ uri: item.photoURL || 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=100&auto=format&fit=crop' }} 
@@ -111,10 +114,10 @@ export default function ContactsScreen() {
               </View>
               <TouchableOpacity 
                 style={styles.chatButton}
-                onPress={() => startChat(item.id, item.displayName, item.photoURL)}
-                disabled={addingContact[item.id]}
+                onPress={() => startChat(item._id, item.displayName, item.photoURL)}
+                disabled={addingContact[item._id]}
               >
-                {addingContact[item.id] ? (
+                {addingContact[item._id] ? (
                   <ActivityIndicator size="small" color="#fff" />
                 ) : (
                   item.hasChat ? (

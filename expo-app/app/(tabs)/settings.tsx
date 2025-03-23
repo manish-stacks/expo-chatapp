@@ -27,14 +27,16 @@ export default function SettingsScreen() {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
-        aspect: [1, 1],
         quality: 0.8,
+        // aspect: [1, 1],
       });
+
+
 
       if (!result.canceled) {
         setUpdatingPhoto(true);
         const photoURL = result.assets[0].uri;
-        await updateUserProfile(user.uid, { photoURL });
+        await updateUserProfile(user.id, { photoURL });
         setUpdatingPhoto(false);
       }
     } catch (error) {
@@ -64,12 +66,12 @@ export default function SettingsScreen() {
                 <ActivityIndicator color="#5271ff" size="small" />
               </View>
             ) : (
-              <Image 
-                source={{ uri: user?.photoURL || 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=100&auto=format&fit=crop' }} 
-                style={styles.profileImage} 
+              <Image
+                source={{ uri: user?.photoURL || 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=100&auto=format&fit=crop' }}
+                style={styles.profileImage}
               />
             )}
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.cameraButton}
               onPress={updateProfilePhoto}
               disabled={updatingPhoto}
@@ -86,7 +88,7 @@ export default function SettingsScreen() {
 
       <View style={styles.settingsSection}>
         <Text style={styles.sectionTitle}>Preferences</Text>
-        
+
         <View style={styles.settingItem}>
           <View style={styles.settingIconContainer}>
             <Bell size={20} color="#5271ff" />
@@ -99,7 +101,7 @@ export default function SettingsScreen() {
             thumbColor={notifications ? '#5271ff' : '#f4f3f4'}
           />
         </View>
-        
+
         <View style={styles.settingItem}>
           <View style={styles.settingIconContainer}>
             <Moon size={20} color="#5271ff" />
@@ -116,21 +118,21 @@ export default function SettingsScreen() {
 
       <View style={styles.settingsSection}>
         <Text style={styles.sectionTitle}>Support</Text>
-        
+
         <TouchableOpacity style={styles.settingItem}>
           <View style={styles.settingIconContainer}>
             <Shield size={20} color="#5271ff" />
           </View>
           <Text style={styles.settingText}>Privacy Policy</Text>
         </TouchableOpacity>
-        
+
         <TouchableOpacity style={styles.settingItem}>
           <View style={styles.settingIconContainer}>
             <HelpCircle size={20} color="#5271ff" />
           </View>
           <Text style={styles.settingText}>Help & Support</Text>
         </TouchableOpacity>
-        
+
         <TouchableOpacity style={styles.settingItem}>
           <View style={styles.settingIconContainer}>
             <Info size={20} color="#5271ff" />
@@ -139,7 +141,7 @@ export default function SettingsScreen() {
         </TouchableOpacity>
       </View>
 
-      <TouchableOpacity 
+      <TouchableOpacity
         style={styles.logoutButton}
         onPress={handleLogout}
       >

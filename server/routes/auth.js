@@ -8,6 +8,7 @@ const auth = require('../middleware/auth');
 // @desc    Register user
 // @access  Public
 router.post('/register', async (req, res) => {
+  // console.log(req.body);
   const { email, password, displayName } = req.body;
   
   try {

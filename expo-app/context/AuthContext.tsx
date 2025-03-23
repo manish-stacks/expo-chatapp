@@ -4,7 +4,7 @@ import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 
 // API URL
-const API_URL = 'http://192.168.1.15:5000/api';
+const API_URL = 'http://192.168.1.39:5000/api';
 
 interface User {
   id: string;
@@ -32,7 +32,7 @@ const storeToken = async (token: string) => {
   if (Platform.OS === 'web') {
     localStorage.setItem('token', token);
   } else {
-    await SecureStore.setItemAsync('token', String(token)); 
+    await SecureStore.setItemAsync('token', token); 
   }
 };
 
@@ -43,8 +43,7 @@ const getToken = async () => {
   if (Platform.OS === 'web') {
     return localStorage.getItem('token');
   } else {
-    const storedToken = await SecureStore.getItemAsync('token');
-    return storedToken ? JSON.parse(storedToken) : null;
+    return await SecureStore.getItemAsync('token');
   }
 };
 
@@ -125,7 +124,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         email,
         password
       });
-      
+      console.log(res)
       const { token, user } = res.data;
       
       await storeToken(token);
@@ -166,7 +165,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         photoURL = uploadRes.data.url;
       }
       
-      console.log(`${API_URL}/auth/register`)
       // Register user
       const res = await axios.post(`${API_URL}/auth/register`, {
         email,
@@ -179,7 +177,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       });
       
-      console.log(res.data)
       const { token, user } = res.data;
       
       await storeToken(token);

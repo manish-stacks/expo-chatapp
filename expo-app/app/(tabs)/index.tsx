@@ -15,7 +15,8 @@ export default function ChatsScreen() {
     const loadChats = async () => {
       if (user) {
         try {
-          const recentChats = await getRecentChats(user.uid);
+          setLoading(true);
+          const recentChats = await getRecentChats(user.id);
           setChats(recentChats);
         } catch (error) {
           console.error('Error loading chats:', error);
@@ -28,7 +29,7 @@ export default function ChatsScreen() {
     loadChats();
     
     // Set up real-time listener for new messages
-    const unsubscribe = subscribeToChats(user?.uid, (updatedChats) => {
+    const unsubscribe = subscribeToChats(user.id, (updatedChats) => {
       setChats(updatedChats);
     });
 
