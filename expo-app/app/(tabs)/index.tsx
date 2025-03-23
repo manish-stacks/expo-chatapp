@@ -12,22 +12,28 @@ export default function ChatsScreen() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!user?.id) return;
     const loadChats = async () => {
-      if (user) {
-        try {
-          setLoading(true);
-          const recentChats = await getRecentChats(user.id);
-          setChats(recentChats);
-        } catch (error) {
-          console.error('Error loading chats:', error);
-        } finally {
-          setLoading(false);
-        }
+      setLoading(true);
+      try {
+        const recentChats = await getRecentChats(user.id);
+        setChats(recentChats);
+      } catch (error) {
+        console.error('Error loading chats:', error);
+      } finally {
+        setLoading(false);
       }
+
     };
 
-    loadChats();
-    
+    // loadChats();
+    const timeout = setTimeout(() => {
+      loadChats();
+    }, 300); // Slight delay to ensure user is fully loaded
+
+
+
+
     // Set up real-time listener for new messages
     const unsubscribe = subscribeToChats(user.id, (updatedChats) => {
       setChats(updatedChats);
@@ -35,17 +41,18 @@ export default function ChatsScreen() {
 
     return () => {
       if (unsubscribe) unsubscribe();
+      clearTimeout(timeout);
     };
-  }, [user]);
+  }, [user?.id]);
 
   const navigateToChat = (chatId, recipientId, recipientName, recipientPhoto) => {
     router.push({
       pathname: '/chat/[id]',
-      params: { 
-        id: chatId, 
-        recipientId, 
-        recipientName, 
-        recipientPhoto 
+      params: {
+        id: chatId,
+        recipientId,
+        recipientName,
+        recipientPhoto
       }
     });
   };
@@ -68,7 +75,7 @@ export default function ChatsScreen() {
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyText}>No conversations yet</Text>
           <Text style={styles.emptySubtext}>Start chatting with your contacts</Text>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.newChatButton}
             onPress={navigateToNewChat}
           >
@@ -82,18 +89,18 @@ export default function ChatsScreen() {
             data={chats}
             keyExtractor={(item) => item.id}
             renderItem={({ item }) => (
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.chatItem}
                 onPress={() => navigateToChat(
-                  item.id, 
-                  item.recipientId, 
-                  item.recipientName, 
+                  item.id,
+                  item.recipientId,
+                  item.recipientName,
                   item.recipientPhoto
                 )}
               >
-                <Image 
-                  source={{ uri: item.recipientPhoto || 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=100&auto=format&fit=crop' }} 
-                  style={styles.avatar} 
+                <Image
+                  source={{ uri: item.recipientPhoto || 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=100&auto=format&fit=crop' }}
+                  style={styles.avatar}
                 />
                 <View style={styles.chatInfo}>
                   <View style={styles.chatHeader}>
@@ -101,17 +108,17 @@ export default function ChatsScreen() {
                     <Text style={styles.chatTime}>{formatTimestamp(item.lastMessageTime)}</Text>
                   </View>
                   <View style={styles.messageContainer}>
-                    <Text 
+                    <Text
                       style={[
-                        styles.lastMessage, 
+                        styles.lastMessage,
                         item.unread && styles.unreadMessage
                       ]}
                       numberOfLines={1}
                     >
-                      {item.lastMessageType === 'image' 
-                        ? '📷 Photo' 
-                        : item.lastMessageType === 'video' 
-                          ? '🎥 Video' 
+                      {item.lastMessageType === 'image'
+                        ? '📷 Photo'
+                        : item.lastMessageType === 'video'
+                          ? '🎥 Video'
                           : item.lastMessage}
                     </Text>
                     {item.unread && <View style={styles.unreadBadge} />}
@@ -120,7 +127,7 @@ export default function ChatsScreen() {
               </TouchableOpacity>
             )}
           />
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.floatingButton}
             onPress={navigateToNewChat}
           >
